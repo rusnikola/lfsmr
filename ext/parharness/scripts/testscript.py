@@ -34,43 +34,44 @@ os.environ['PATH'] = dirname(realpath(__file__))+\
 
 # execution ----------------
 for i in range(0,5):
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 2 "+\
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 1 -demptyf=1"+\
 	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
-	" --meta d:tracker=NIL:tracker=RCU:tracker=Range_new:tracker=HE:tracker=Hazard:tracker=QSBR"+\
+	" --meta d:tracker=NIL:tracker=RCU:tracker=Range_new:tracker=HE:tracker=Hazard:tracker=QSBR:tracker"+\
 	" -o data/final/hashmap_result.csv"
 	os.system(cmd)
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 1 "+\
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 5 -demptyf=1"+\
 	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
-	" --meta d:tracker=LF:tracker=FAA"+\
+	" --meta d:tracker=LF:tracker=FAA:tracker=WCAS"+\
 	" -o data/final/hashmap_result.csv"
 	os.system(cmd)
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 3 "+\
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 2 -demptyf=1"+\
 	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
 	" --meta d:tracker=NIL:tracker=RCU:tracker=Range_new:tracker=HE:tracker=Hazard:tracker=QSBR"+\
 	" -o data/final/list_result.csv"
 	os.system(cmd)
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 4 "+\
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 6 -demptyf=1"+\
 	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
-	" --meta d:tracker=LF:tracker=FAA"+\
+	" --meta d:tracker=LF:tracker=FAA:tracker=WCAS"+\
 	" -o data/final/list_result.csv"
 	os.system(cmd)
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 8 "+\
-	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
-	" --meta d:tracker=NIL:tracker=RCU:tracker=Range_new:tracker=HE:tracker=Hazard:tracker=QSBR"+\
-	" -o data/final/natarajan_result.csv"
-	os.system(cmd)
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 7 "+\
-	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
-	" --meta d:tracker=LF:tracker=FAA"+\
-	" -o data/final/natarajan_result.csv"
-	os.system(cmd)
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 5 "+\
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 3 -demptyf=1"+\
 	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
 	" --meta d:tracker=NIL:tracker=RCU:tracker=Range_new:tracker=QSBR:tracker=Interval"+\
 	" -o data/final/bonsai_result.csv"
 	os.system(cmd)
-	cmd = "metacmd.py main -i 10 -m 3 -v -r 6 "+\
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 7 -demptyf=1"+\
 	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
-	" --meta d:tracker=LF:tracker=FAA"+\
+	" --meta d:tracker=LF:tracker=FAA:tracker=WCAS"+\
 	" -o data/final/bonsai_result.csv"
 	os.system(cmd)
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 4 -demptyf=1"+\
+	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
+	" --meta d:tracker=NIL:tracker=RCU:tracker=Range_new:tracker=HE:tracker=Hazard:tracker=QSBR"+\
+	" -o data/final/natarajan_result.csv"
+	os.system(cmd)
+	cmd = "metacmd.py main -i 10 -m 3 -v -r 8 -demptyf=1"+\
+	" --meta t:1:5:10:15:20:25:30:35:40:45:50:55:60:65:70:75:80:85:90:95:100"+\
+	" --meta d:tracker=LF:tracker=FAA:tracker=WCAS"+\
+	" -o data/final/natarajan_result.csv"
+	os.system(cmd)
+	
