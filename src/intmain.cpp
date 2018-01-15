@@ -25,14 +25,17 @@ limitations under the License.
 #include "Harness.hpp"
 #include "CustomTests.hpp"
 #include "rideables/SGLUnorderedMap.hpp"
-#include "rideables/SortedUnorderedMapRange.hpp"
 #include "rideables/SortedUnorderedMap.hpp"
 #include "rideables/BonsaiTree.hpp"
-#include "rideables/BonsaiTreeRange.hpp"
 #include "rideables/NatarajanTree.hpp"
-#include "rideables/NatarajanTreeRangeTracker.hpp"
 #include "rideables/LinkList.hpp"
+
+#if (__x86_64__ || __ppc64__)
+#include "rideables/SortedUnorderedMapRange.hpp"
+#include "rideables/BonsaiTreeRange.hpp"
+#include "rideables/NatarajanTreeRangeTracker.hpp"
 #include "rideables/LinkListRange.hpp"
+#endif
 
 
 using namespace std;
@@ -48,14 +51,17 @@ int main(int argc, char *argv[])
 
 	// additional rideables go here
 	gtc->addRideableOption(new SGLUnorderedMapFactory<int,int>(), "SGLUnorderedMap (default)");
-	gtc->addRideableOption(new SortedUnorderedMapRangeFactory<int,int>(), "SortedUnorderedMapRange");
 	gtc->addRideableOption(new SortedUnorderedMapFactory<int,int>(), "SortedUnorderedMap");
 	gtc->addRideableOption(new LinkListFactory<int,int>(), "LinkList");
-	gtc->addRideableOption(new LinkListRangeFactory<int,int>(), "LinkListRange");
 	gtc->addRideableOption(new BonsaiTreeFactory<int,int>(), "BonsaiTree");
+	gtc->addRideableOption(new NatarajanTreeFactory<int,int>(), "NatarajanTree");
+
+#if (__x86_64__ || __ppc64__)
+	gtc->addRideableOption(new SortedUnorderedMapRangeFactory<int,int>(), "SortedUnorderedMapRange");
+	gtc->addRideableOption(new LinkListRangeFactory<int,int>(), "LinkListRange");
 	gtc->addRideableOption(new BonsaiTreeRangeFactory<int,int>(), "BonsaiTreeRange");
 	gtc->addRideableOption(new NatarajanTreeRangeTrackerFactory<int,int>(), "NatarajanTreeRangeTracker");
-	gtc->addRideableOption(new NatarajanTreeFactory<int,int>(), "NatarajanTree");
+#endif
 	//gtc->addRideableOption(new SortedUnorderedMapHazardFactory<int,int>(), "SortedUnorderedMapHazard");
 	// gtc->addRideableOption(new SortedUnorderedMapRCUFactory<int,int>(), "SortedUnorderedMapRCU");
 	//gtc->addRideableOption(new SortedUnorderedMapHEFactory<int,int>(), "SortedUnorderedMapHE");
@@ -80,8 +86,8 @@ int main(int argc, char *argv[])
 	// The ObjRetire derives from MapChurnTest, with a field of retired object counts in it.
 	gtc->addTestOption(new ObjRetireTest<int>(50,0,0,30,20,65536,5000), "ObjRetire:g50i30rm20:range=65536:prefill=5000");
 	gtc->addTestOption(new ObjRetireTest<int>(50,0,50,0,0,65536,1024), "ObjRetire:g50p50:range=65536:prefill=1024");
-	gtc->addTestOption(new ObjRetireTest<int>(90,0,10,0,0,65536,1024), "ObjRetire:g90p10:range=65536:prefill=1024");
-	gtc->addTestOption(new ObjRetireTest<int>(0,0,0,50,50,65536,50000), "ObjRetire:i50rm50:range=100000:prefill=50000");
+	gtc->addTestOption(new ObjRetireTest<int>(90,0,10,0,0,100000,50000), "ObjRetire:g90p10:range=100000:prefill=50000");
+	gtc->addTestOption(new ObjRetireTest<int>(0,0,0,50,50,100000,50000), "ObjRetire:i50rm50:range=100000:prefill=50000");
 	gtc->addTestOption(new ObjRetireTest<int>(0,0,0,50,50,65536,1024), "ObjRetire:i50rm50:range=65536:prefill=1024");
 
 	// gtc->addTestOption(new MapOrderedGet<int>(65536, 5000), "MapOrderedGetPut:range=65536:prefill=5000");

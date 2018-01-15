@@ -59,7 +59,7 @@ private:
 	padded<uint64_t>* retire_counters;
 	padded<uint64_t>* alloc_counters;
 	padded<std::list<IntervalInfo>>* retired;
-	padded<long>* retired_cnt;
+	padded<uint64_t>* retired_cnt;
 
 	std::atomic<uint64_t> epoch;
 
@@ -68,7 +68,7 @@ public:
 	RangeTracker(GlobalTestConfig* gtc, int epochFreq, int emptyFreq, bool collect): 
 	 task_num(gtc->task_num),freq(emptyFreq),epochFreq(epochFreq),collect(collect){
 		retired = new padded<std::list<RangeTracker<T>::IntervalInfo>>[task_num];
-		retired_cnt = new padded<long>[task_num];
+		retired_cnt = new padded<uint64_t>[task_num];
 
 		upper_reservs = new paddedAtomic<uint64_t>[task_num];
 		lower_reservs = new paddedAtomic<uint64_t>[task_num];
@@ -94,13 +94,15 @@ public:
 			return LF;
 		} else if (gtc->getEnv("tracker") == "FAA"){
 			return FAA;
+		} else if (gtc->getEnv("tracker") == "WCAS"){
+			return WCAS;
 		} else {
-			errexit("rangetracker constructor - tracker type error. biptrWCAS in use.");
+			errexit("rangetracker constructor - tracker type error.");
 			exit(1);
 		}
 	}
 
-	long get_retired_cnt(int tid){
+	uint64_t get_retired_cnt(int tid){
 		return retired_cnt[tid].ui;
 	}
 	
