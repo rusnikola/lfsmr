@@ -84,7 +84,9 @@ BonsaiTreeRange<K, V>::BonsaiTreeRange(GlobalTestConfig* gtc): RetiredMonitorabl
 	//range_tracker = new RangeTracker<BonsaiTreeRange<K, V>::Node>(gtc->task_num, 150, 200, true);
 	std::string type = gtc->getEnv("tracker").empty()? "LF":gtc->getEnv("tracker");
 	if (type == "Hazard" || type == "HP") errexit("Use _dynamic versions instead.");
-	range_tracker = new RangeTracker<Node>(gtc, 150, 30, true);
+	int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
+	int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
+	range_tracker = new RangeTracker<Node>(gtc, epochf, emptyf, true);
 	//initialize with an empty head state.
 	//curr_state.store(new State());
 	local_tid = 0;

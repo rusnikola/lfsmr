@@ -90,7 +90,9 @@ private:
 public:
 	SortedUnorderedMapRange(GlobalTestConfig* gtc, int idx_size): 
 	RetiredMonitorable(gtc), idxSize(idx_size){
-		range_tracker = new RangeTracker<Node>(gtc, 150, 30, true);
+		int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
+		int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
+		range_tracker = new RangeTracker<Node>(gtc, epochf, emptyf, true);
 	};
 	~SortedUnorderedMapRange(){};
 

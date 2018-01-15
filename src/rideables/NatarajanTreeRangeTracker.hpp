@@ -152,7 +152,9 @@ private:
 public:
 	NatarajanTreeRangeTracker(GlobalTestConfig* gtc): RetiredMonitorable(gtc)
 	{//TODO: finish range_tracker initialization.
-		range_tracker = new RangeTracker<Node>(gtc,150,30,true);
+		int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
+		int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
+		range_tracker = new RangeTracker<Node>(gtc,epochf,emptyf,true);
 		r = Node::alloc(infK,defltV,nullptr,nullptr,2,range_tracker,0);
 		s = Node::alloc(infK,defltV,nullptr,nullptr,1,range_tracker,0);
 		r->right = Node::alloc(infK,defltV,nullptr,nullptr,2,range_tracker,0);

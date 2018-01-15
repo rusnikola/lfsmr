@@ -80,7 +80,9 @@ template<class K, class V>
 BonsaiTree<K, V>::BonsaiTree(GlobalTestConfig* gtc): RetiredMonitorable(gtc){
 	std::string type = gtc->getEnv("tracker");
 	if (type == "Hazard" || type == "HE") errexit("Hazard and HE not available ");
-	memory_tracker = new MemoryTracker<Node>(gtc, 150, 30, 2, true);
+	int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
+	int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
+	memory_tracker = new MemoryTracker<Node>(gtc, epochf, emptyf, 2, true);
 	//initialize with an empty head state.
 	local_tid = 0;
 	curr_state.store(mkState());
