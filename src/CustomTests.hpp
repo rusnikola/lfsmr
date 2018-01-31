@@ -25,6 +25,7 @@ limitations under the License.
 #include "ROrderedMap.hpp"
 #include "RetiredMonitorable.hpp"
 #include <map>
+#include <random>
 template <class T>
 class MapChurnTest : public Test{
 public:
@@ -34,7 +35,7 @@ public:
 	int range;
 	int prefill;
 
-	inline T fromInt(int v);
+	inline T fromInt(uint64_t v);
 	
 	MapChurnTest(int p_gets, int p_replaces, int p_puts, int p_inserts, int p_removes, int range, int prefill);
 	MapChurnTest(int p_gets, int p_replaces, int p_puts, int p_inserts, int p_removes, int range):
@@ -93,9 +94,11 @@ void MapChurnTest<T>::init(GlobalTestConfig* gtc){
 
 	// prefill
 	int i = 0;
-	int r = 1;
+	uint64_t r = 1;
+	std::mt19937_64 gen(1);
 	for(i = 0; i<prefill; i++){
-		r = nextRand(r);
+		// r = nextRand(r);
+		r = gen();
 		T k = this->fromInt(r%range);
 		T val = k;
 		m->put(k,val,0);
@@ -106,12 +109,12 @@ void MapChurnTest<T>::init(GlobalTestConfig* gtc){
 }
 
 template <class T>
-inline T MapChurnTest<T>::fromInt(int v){
+inline T MapChurnTest<T>::fromInt(uint64_t v){
 	return (T)v;
 }
 
 template<>
-inline std::string MapChurnTest<std::string>::fromInt(int v){
+inline std::string MapChurnTest<std::string>::fromInt(uint64_t v){
 	return std::to_string(v);
 }
 
@@ -122,16 +125,19 @@ int MapChurnTest<T>::MapChurnTest::execute(GlobalTestConfig* gtc, LocalTestConfi
 	gettimeofday(&now,NULL);
 	int ops = 0;
 	uint64_t r = ltc->seed;
+	std::mt19937_64 gen_k(r);
+	std::mt19937_64 gen_p(r+1);
 	int tid = ltc->tid;
 
 	//broker->threadInit(gtc,ltc);
 
 	while(timeDiff(&now,&time_up)>0){
-		r = nextRand(r);
+		// r = nextRand(r);
+		r = gen_k();
 		T k = this->fromInt(r%range);
 		T val = k;
 
-		int p = r%100;
+		int p = gen_p()%100;
 
 		if(p<prop_gets){
 			m->get(k,tid);
@@ -164,7 +170,7 @@ public:
 	int range;
 	int prefill;
 
-	inline T fromInt(int v);
+	inline T fromInt(uint64_t v);
 	
 	ObjRetireTest(int p_gets, int p_replaces, int p_puts, int p_inserts, int p_removes, int range, int prefill);
 	ObjRetireTest(int p_gets, int p_replaces, int p_puts, int p_inserts, int p_removes, int range):
@@ -225,13 +231,15 @@ void ObjRetireTest<T>::init(GlobalTestConfig* gtc){
 	}
 
 	// add a field in records:
-	gtc->recorder->addThreadField("obj_retired", &Recorder::sumLongs);
+	gtc->recorder->addThreadField("obj_retired", &Recorder::sumInt64s);
 
 	// prefill
 	int i = 0;
-	int r = 1;
+	uint64_t r = 1;
+	std::mt19937_64 gen(1);
 	for(i = 0; i<prefill; i++){
-		r = nextRand(r);
+		// r = nextRand(r);
+		r = gen();
 		T k = this->fromInt(r%range);
 		T val = k;
 		m->put(k,val,0);
@@ -242,12 +250,12 @@ void ObjRetireTest<T>::init(GlobalTestConfig* gtc){
 }
 
 template <class T>
-inline T ObjRetireTest<T>::fromInt(int v){
+inline T ObjRetireTest<T>::fromInt(uint64_t v){
 	return (T)v;
 }
 
 template<>
-inline std::string ObjRetireTest<std::string>::fromInt(int v){
+inline std::string ObjRetireTest<std::string>::fromInt(uint64_t v){
 	return std::to_string(v);
 }
 
@@ -258,30 +266,40 @@ int ObjRetireTest<T>::ObjRetireTest::execute(GlobalTestConfig* gtc, LocalTestCon
 	gettimeofday(&now,NULL);
 	int ops = 0;
 	uint64_t r = ltc->seed;
+	std::mt19937_64 gen_k(r);
+	std::mt19937_64 gen_p(r+1);
 	int tid = ltc->tid;
 
 	//broker->threadInit(gtc,ltc);
 
 	while(timeDiff(&now,&time_up)>0){
-		r = nextRand(r);
+		// r = nextRand(r);
+		r = gen_k();
 		T k = this->fromInt(r%range);
 		T val = k;
 
-		int p = r%100;
+		int p = gen_p()%100;
 
 		if(p<prop_gets){
+			// printf("g: %lu\n", k);
 			m->get(k,tid);
 		}
 		else if(p<prop_replaces){
+			// printf("r: %lu\n", k);
 			auto old = m->replace(k,val,tid);
 		}
 		else if(p<prop_puts){
+			// printf("p: %lu\n", k);
 			auto old = m->put(k,val,tid);
 		}
 		else if(p<prop_inserts){
+			// std::cout<<"i: "<<k<<std::endl;
+			// printf("i: %lu\n", k);
 			m->insert(k,val,tid);
 		}
 		else{ // p<=prop_removes
+			// std::cout<<"r: "<<k<<std::endl;
+			// printf("r: %lu\n", k);
 			m->remove(k,tid);
 		}
 
@@ -316,7 +334,7 @@ public:
 	std::atomic<bool> passed;
 	UIDGenerator* ug;
 	
-	T fromInt(int v);
+	T fromInt(uint64_t v);
 	int toInt(T v);
 
 	void init(GlobalTestConfig* gtc);
@@ -336,11 +354,11 @@ void MapVerifyTest<T>::init(GlobalTestConfig* gtc){
 }
 
 template <class T>
-inline T MapVerifyTest<T>::fromInt(int v){
+inline T MapVerifyTest<T>::fromInt(uint64_t v){
 	return (T)v;
 }
 template<>
-inline std::string MapVerifyTest<std::string>::fromInt(int v){
+inline std::string MapVerifyTest<std::string>::fromInt(uint64_t v){
 	return std::to_string(v);
 }
 template <class T>
@@ -358,7 +376,9 @@ int MapVerifyTest<T>::execute(GlobalTestConfig* gtc, LocalTestConfig* ltc){
 	struct timeval now;
 	gettimeofday(&now,NULL);
 	int ops = 0;
-	unsigned int r = ltc->seed;
+	uint64_t r = ltc->seed;
+	std::mt19937_64 gen_k(r);
+	std::mt19937_64 gen_p(r+1);
 	int tid = ltc->tid;
 
 	std::vector<uint32_t> found;
@@ -372,9 +392,9 @@ int MapVerifyTest<T>::execute(GlobalTestConfig* gtc, LocalTestConfig* ltc){
 
 	while(now.tv_sec < time_up.tv_sec 
 		|| (now.tv_sec==time_up.tv_sec && now.tv_usec<time_up.tv_usec) ){
-		r = nextRand(r);
-	
-		if(r%2==0){
+		// r = nextRand(r);
+		r = gen_k();
+		if(gen_p()%2==0){
 			q->put(this->fromInt(insKey),this->fromInt(insKey),tid);
 			insKey = ug->next(insKey,tid);
 		}
@@ -465,7 +485,8 @@ int QueryVerifyTest<T>::execute(GlobalTestConfig* gtc, LocalTestConfig* ltc){
 	struct timeval now;
 	gettimeofday(&now,NULL);
 	int ops = 0;
-	unsigned int r = ltc->seed;
+	uint64_t r = ltc->seed;
+	std::mt19937_64 gen(r);
 	int tid = ltc->tid;
 
 	std::vector<uint32_t> found;
@@ -484,8 +505,8 @@ int QueryVerifyTest<T>::execute(GlobalTestConfig* gtc, LocalTestConfig* ltc){
 	}
 	while(now.tv_sec < time_up.tv_sec 
 		|| (now.tv_sec==time_up.tv_sec && now.tv_usec<time_up.tv_usec) ){
-		r = nextRand(r);
-	
+		// r = nextRand(r);
+		r = gen();
 		if(r%2==0){
 			q->put(this->fromInt(tid),this->fromInt(insKey),tid);
 			insKey = ug->next(insKey,tid);

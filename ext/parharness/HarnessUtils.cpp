@@ -84,6 +84,7 @@ unsigned int nextRand(unsigned int last) {
 	unsigned int next = last;
 	next = next * 1664525 + 1013904223;
 	return next;	
+	// return rand();
 }
 
 int warmMemory(unsigned int megabytes){

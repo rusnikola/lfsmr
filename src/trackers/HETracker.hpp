@@ -149,9 +149,9 @@ public:
 	void retire(T* obj, uint64_t birth_epoch, int tid){
 		if(obj==NULL){return;}
 		std::list<HEInfo>* myTrash = &(retired[tid].ui);
-		for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
-			assert(it->obj!=obj && "double retire error");
-		}
+		// for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
+		// 	assert(it->obj!=obj && "double retire error");
+		// }
 			
 		uint64_t retire_epoch = epoch.load(std::memory_order_acquire);
 		myTrash->push_back(HEInfo(obj, birth_epoch, retire_epoch));

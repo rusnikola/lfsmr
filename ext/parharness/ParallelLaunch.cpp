@@ -164,6 +164,7 @@ void parallelWork(GlobalTestConfig* gtc){
 	pthread_attr_init (&attr);
 	pthread_attr_setscope (&attr, PTHREAD_SCOPE_SYSTEM);
 	//pthread_attr_setstacksize(&attr, PTHREAD_STACK_MIN + 1024*1024);
+	srand((unsigned) time(NULL));
 	for (i = 0; i < task_num; i++) {
 		ctcs[i].gtc = gtc;
 		ctcs[i].ltc = new LocalTestConfig();

@@ -78,10 +78,11 @@ private:
 	}
 
 public:
-	SortedUnorderedMap(GlobalTestConfig* gtc,int idx_size): 
-	RetiredMonitorable(gtc),idxSize(idx_size){
-		int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
-		int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
+	SortedUnorderedMap(GlobalTestConfig* gtc,int idx_size):
+		RetiredMonitorable(gtc),idxSize(idx_size){
+        int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
+        int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
+		std::cout<<"emptyf:"<<emptyf<<std::endl;
 		memory_tracker = new MemoryTracker<Node>(gtc, epochf, emptyf, 3, COLLECT);
 	}
 	~SortedUnorderedMap(){};

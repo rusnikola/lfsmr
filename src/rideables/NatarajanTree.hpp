@@ -148,8 +148,8 @@ public:
 	{
 		//std::string type = gtc->getEnv("tracker").empty()? "RCU":gtc->getEnv("tracker");
 		//memory_tracker = new MemoryTracker<Node>(type, gtc->task_num, 150, 30, 5, COLLECT);
-		int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
-		int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
+        int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
+        int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
 		memory_tracker = new MemoryTracker<Node>(gtc, epochf, emptyf, 5, COLLECT);
 		r = Node::alloc(infK,defltV,nullptr,nullptr,2,memory_tracker,0);
 		s = Node::alloc(infK,defltV,nullptr,nullptr,1,memory_tracker,0);

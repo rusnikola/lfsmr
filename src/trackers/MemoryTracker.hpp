@@ -34,6 +34,11 @@ limitations under the License.
 #include "RangeTrackerNew.hpp"
 #include "HazardTracker.hpp"
 #include "HETracker.hpp"
+#if !(__x86_64__ || __ppc64__)
+#include "RangeTrackerTP.hpp"
+#endif
+
+
 
 
 enum TrackerType{
@@ -97,6 +102,14 @@ public:
 			type = Interval;
 		}
 		
+		// only compile in 32 bit mode
+#if !(__x86_64__ || __ppc64__)
+		else if (tracker_type == "TP"){
+			tracker = new RangeTrackerTP<T>(task_num, epoch_freq, empty_freq, collect);
+			type = Range_TP;
+		}
+#endif
+
 		else {
 			errexit("constructor - tracker type error.");
 		}
@@ -141,7 +154,6 @@ public:
 		slot_renamers[tid].ui[dst_idx] = tmp;
 	}
 
-
 	void release(int idx, int tid){
 		tracker->release(slot_renamers[tid].ui[idx], tid);
 	}
@@ -155,7 +167,7 @@ public:
 		tracker->retire(obj, tid);
 	}
 
-	int get_retired_cnt(int tid){
+	uint64_t get_retired_cnt(int tid){
 		if (type){
 			return tracker->get_retired_cnt(tid);
 		} else {

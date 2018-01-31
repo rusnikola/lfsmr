@@ -25,11 +25,7 @@ limitations under the License.
 #include "ConcurrentPrimitives.hpp"
 #include "RUnorderedMap.hpp"
 
-#if !(__x86_64__ || __ppc64__)
-#include "RangeTrackerWCAS.hpp"
-#else
 #include "RangeTracker.hpp"
-#endif
 // #include "RangeTracker.hpp"
 
 #include "RetiredMonitorable.hpp"

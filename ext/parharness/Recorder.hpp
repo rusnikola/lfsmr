@@ -71,6 +71,7 @@ public:
 	void reportThreadInfo(std::string field, double value, int tid);
 	void reportThreadInfo(std::string field, int value, int tid);
 	void reportThreadInfo(std::string field, long value, int tid);
+	void reportThreadInfo(std::string field, uint64_t value, int tid);
 	void reportThreadInfo(std::string field, std::string value, int tid);
 
 
@@ -132,6 +133,10 @@ public:
 	static std::string sumLongs(std::list<std::string> list){
 		long ans = (long)computeSum(list);
 		//return std::string(ftoa(ans));
+		return std::to_string(ans);
+	}
+	static std::string sumInt64s(std::list<std::string> list){
+		uint64_t ans = (uint64_t)computeSum(list);
 		return std::to_string(ans);
 	}
 	static std::string avgInts(std::list<std::string> list){

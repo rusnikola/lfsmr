@@ -121,9 +121,9 @@ public:
 	void retire(T* obj, int tid){
 		if(obj==NULL){return;}
 		std::list<RCUInfo>* myTrash = &(retired[tid].ui);
-		for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
-			assert(it->obj!=obj && "double retire error");
-		}
+		// for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
+		// 	assert(it->obj!=obj && "double retire error");
+		// }
 			
 		uint64_t e = epoch.load(std::memory_order_acquire);
 		RCUInfo info = RCUInfo(obj,e);

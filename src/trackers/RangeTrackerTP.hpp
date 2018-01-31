@@ -18,8 +18,8 @@ limitations under the License.
 
 
 
-#ifndef RANGE_TRACKER_HPP
-#define RANGE_TRACKER_HPP
+#ifndef RANGE_TRACKER_TP_HPP
+#define RANGE_TRACKER_TP_HPP
 
 #include <queue>
 #include <list>
@@ -29,13 +29,15 @@ limitations under the License.
 #include "RAllocator.hpp"
 #include "BlockPool.hpp"
 
-enum UpdateType{LF, FAA, WCAS, TP};
+#include "BaseTracker.hpp"
 
-template<class T> class RangeTracker;
+// ignoring the last 2 digits of pointers
+// now blockpool only work on 32 bits.
+#define PTR_MASK 0xfffffffc
 
-#include "biptr.hpp"
 
-template<class T> class RangeTracker{
+template<class T> 
+class RangeTrackerTP:public BaseTracker<T>{
 private:
 	int task_num;
 	int freq;
@@ -43,7 +45,6 @@ private:
 	bool collect;
 	static __thread int local_tid;
 public:
-	UpdateType type;
 	class IntervalInfo{
 	public:
 		T* obj;
@@ -52,6 +53,11 @@ public:
 		IntervalInfo(T* obj, uint64_t b_epoch, uint64_t r_epoch):
 			obj(obj), birth_epoch(b_epoch), retire_epoch(r_epoch){}
 	};
+
+	struct objStruct{
+		T obj;
+		uint64_t birth_epoch;
+	};
 	
 private:
 	paddedAtomic<uint64_t>* upper_reservs;
@@ -59,17 +65,16 @@ private:
 	padded<uint64_t>* retire_counters;
 	padded<uint64_t>* alloc_counters;
 	padded<std::list<IntervalInfo>>* retired;
-	padded<uint64_t>* retired_cnt;
 
 	std::atomic<uint64_t> epoch;
 
-public:
-	~RangeTracker(){};
-	RangeTracker(GlobalTestConfig* gtc, int epochFreq, int emptyFreq, bool collect): 
-	 task_num(gtc->task_num),freq(emptyFreq),epochFreq(epochFreq),collect(collect){
-		retired = new padded<std::list<RangeTracker<T>::IntervalInfo>>[task_num];
-		retired_cnt = new padded<uint64_t>[task_num];
+	BlockPool<RangeTrackerTP<T>::objStruct>* pool;
 
+public:
+	~RangeTrackerTP(){};
+	RangeTrackerTP(int task_num, int epochFreq, int emptyFreq, bool collect): 
+	 BaseTracker<T>(task_num),task_num(task_num),freq(emptyFreq),epochFreq(epochFreq),collect(collect){
+		retired = new padded<std::list<RangeTrackerTP<T>::IntervalInfo>>[task_num];
 		upper_reservs = new paddedAtomic<uint64_t>[task_num];
 		lower_reservs = new paddedAtomic<uint64_t>[task_num];
 		for (int i = 0; i < task_num; i++){
@@ -78,40 +83,10 @@ public:
 		}
 		retire_counters = new padded<uint64_t>[task_num];
 		alloc_counters = new padded<uint64_t>[task_num];
-		// regist tracker into biptr, so biptr can call update before dereferencing.
-		biptr<T>::set_tracker(this);
-
-		// get and deal with types.
-		type = get_update_type(gtc);
 		epoch.store(0,std::memory_order_release);
+		pool = new BlockPool<RangeTrackerTP<T>::objStruct>(task_num, false);
 	}
-	RangeTracker(int task_num, int epochFreq, int emptyFreq) : RangeTracker(task_num,epochFreq,emptyFreq,true){}
-
-	UpdateType get_update_type(GlobalTestConfig* gtc){
-		if (gtc->getEnv("tracker").empty()){
-			return LF;
-		} else if (gtc->getEnv("tracker") == "LF"){
-			return LF;
-		} else if (gtc->getEnv("tracker") == "FAA"){
-			return FAA;
-		} else if (gtc->getEnv("tracker") == "WCAS"){
-			return WCAS;
-		} else {
-			errexit("rangetracker constructor - tracker type error.");
-			exit(1);
-		}
-	}
-
-	uint64_t get_retired_cnt(int tid){
-		return retired_cnt[tid].ui;
-	}
-	
-	static void setLocalTid(int tid){
-		local_tid = tid;
-	}
-	static int getLocalTid(){
-		return local_tid;
-	}
+	RangeTrackerTP(int task_num, int epochFreq, int emptyFreq) : RangeTrackerTP(task_num,epochFreq,emptyFreq,true){}
 
 	void __attribute__ ((deprecated)) reserve(uint64_t e, int tid){
 		return reserve(tid);
@@ -125,56 +100,69 @@ public:
 		if(alloc_counters[tid]%(epochFreq*task_num)==0){
 			epoch.fetch_add(1,std::memory_order_acq_rel);
 		}
-		switch(type){
-			default:
-				char* block = (char*) malloc(sizeof(uint64_t) + sizeof(T));
-				uint64_t* birth_epoch = (uint64_t*)(block + sizeof(T));
-				*birth_epoch = get_epoch();
-				return (void*)block;
-			break;
-		}
+		// char* block = (char*) malloc(sizeof(uint64_t) + sizeof(T));
+		char* block = (char*) pool->allocBlock(tid);
+		uint64_t* birth_epoch = (uint64_t*)(block + sizeof(T));
+		*birth_epoch = get_epoch();
+		return (void*)block;
 	}
 
 	static uint64_t read_birth(T* obj){
+		if (!obj) return NULL;
 		uint64_t* birth_epoch = (uint64_t*)((char*)obj + sizeof(T));
 		return *birth_epoch;
 	}
 
 	void reclaim(T* obj){
-		if (!obj) return;
+		void* block = obj;
 		obj->~T();
-		free ((char*)obj);
+		pool->freeBlock(block, local_tid);
 	}
 
-	void reserve(int tid){
+	T* read(std::atomic<T*>& obj, int idx, int tid){
+		return read(obj, tid);
+	}
+    T* read(std::atomic<T*>& obj, int tid){
+        uint64_t prev_epoch = upper_reservs[tid].ui.load(std::memory_order_acquire);
+		while(true){
+			T* ptr = obj.load(std::memory_order_acquire);
+			if (!(T*)((size_t)ptr & PTR_MASK)){
+				return ptr;
+			}
+			T* real_ptr = (T*)((size_t)ptr & PTR_MASK);
+			// if (!real_ptr){
+			// 	return NULL;
+			// }
+			uint64_t new_epoch = read_birth(real_ptr);
+			if (new_epoch == prev_epoch){
+				return ptr;
+			} else {
+				upper_reservs[tid].ui.store(new_epoch, std::memory_order_release);
+				prev_epoch = new_epoch;
+			}
+		}
+    }
+
+	void start_op(int tid){
+		local_tid = tid;
 		uint64_t e = epoch.load(std::memory_order_acquire);
 		lower_reservs[tid].ui.store(e,std::memory_order_release);
 		upper_reservs[tid].ui.store(e,std::memory_order_release);
-		setLocalTid(tid);
 	}
-	void update_reserve(uint64_t e){ //called by biptr.
-		uint64_t curr_upper = upper_reservs[local_tid].ui.load(std::memory_order_acquire);
-		if (e > curr_upper){
-			upper_reservs[local_tid].ui.store(e, std::memory_order_release);
-		} else {
-			return;
-		}
-	}
-
-	bool validate(uint64_t birth_before){//TODO: add validation before every dereference.
-		return (upper_reservs[local_tid].ui.load(std::memory_order_acquire) >= birth_before);
-	}
-	void clear(int tid){
+	void end_op(int tid){
 		upper_reservs[tid].ui.store(UINT64_MAX,std::memory_order_release);
 		lower_reservs[tid].ui.store(UINT64_MAX,std::memory_order_release);
 	}
-
-	inline void incrementEpoch(){
-		epoch.fetch_add(1,std::memory_order_acq_rel);
+	void reserve(int tid){
+		start_op(tid);
+	}
+	void clear(int tid){
+		end_op(tid);
 	}
 
-	T* read(biptr<T> ptr){
-		return ptr.protect_and_fetch_ptr();
+	
+	inline void incrementEpoch(){
+		epoch.fetch_add(1,std::memory_order_acq_rel);
 	}
 	
 	void retire(T* obj, uint64_t birth_epoch, int tid){
@@ -183,14 +171,13 @@ public:
 		// for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
 		// 	assert(it->obj!=obj && "double retire error");
 		// }
-			
+		
 		uint64_t retire_epoch = epoch.load(std::memory_order_acquire);
 		myTrash->push_back(IntervalInfo(obj, birth_epoch, retire_epoch));
 		if(collect && retire_counters[tid]%freq==0){
 			empty(tid);
 		}
 		retire_counters[tid]=retire_counters[tid]+1;
-		retired_cnt[tid].ui++;
 	}
 
 	void retire(T* obj, int tid){
@@ -207,9 +194,11 @@ public:
 	}
 
 	void empty(int tid){
+		//read all epochs
 		uint64_t upper_epochs_arr[task_num];
 		uint64_t lower_epochs_arr[task_num];
 		for (int i = 0; i < task_num; i++){
+			//sequence matters.
 			lower_epochs_arr[i] = lower_reservs[i].ui.load(std::memory_order_acquire);
 			upper_epochs_arr[i] = upper_reservs[i].ui.load(std::memory_order_acquire);
 		}
@@ -220,7 +209,7 @@ public:
 			IntervalInfo res = *iterator;
 			if(!conflict(lower_epochs_arr, upper_epochs_arr, res.birth_epoch, res.retire_epoch)){
 				reclaim(res.obj);
-				retired_cnt[tid].ui--;
+				this->dec_retired(tid);
 				iterator = myTrash->erase(iterator);
 			}
 			else{++iterator;}
@@ -230,12 +219,8 @@ public:
 	bool collecting(){return collect;}
 };
 
-
 //requirement for linkers.
 template<class T>
-__thread int RangeTracker<T>::local_tid;
-
-template<class T>
-RangeTracker<T>* biptr<T>::range_tracker;
+__thread int RangeTrackerTP<T>::local_tid;
 
 #endif

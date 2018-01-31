@@ -26,11 +26,8 @@ limitations under the License.
 #include <list>
 #include "Harness.hpp"
 #include "ROrderedMap.hpp"
-#if !(__x86_64__ || __ppc64__)
-#include "RangeTrackerWCAS.hpp"
-#else
+
 #include "RangeTracker.hpp"
-#endif
 // #include "RangeTracker.hpp"
 
 #include "RetiredMonitorable.hpp"

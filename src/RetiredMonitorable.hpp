@@ -29,15 +29,15 @@ limitations under the License.
 
 class RetiredMonitorable{
 private:
-	padded<long>* retired_cnt;
+	padded<uint64_t>* retired_cnt;
 public:
 	RetiredMonitorable(GlobalTestConfig* gtc){
-		retired_cnt = new padded<long>[gtc->task_num];
+		retired_cnt = new padded<uint64_t>[gtc->task_num];
 	}
-	void collect_retired_size(long size, int tid){
+	void collect_retired_size(uint64_t size, int tid){
 		retired_cnt[tid].ui += size;
 	}
-	long report_retired(int tid){
+	uint64_t report_retired(int tid){
 		return retired_cnt[tid].ui;
 	}
 };

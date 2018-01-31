@@ -29,11 +29,9 @@ limitations under the License.
 #include "HazardTracker.hpp"
 #include "RUnorderedMap.hpp"
 // #include "ssmem.h"
-#if !(__x86_64__ || __ppc64__)
-#include "RangeTrackerWCAS.hpp"
-#else
+
 #include "RangeTracker.hpp"
-#endif
+
 // #include "RangeTracker.hpp"
 
 

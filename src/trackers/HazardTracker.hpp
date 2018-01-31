@@ -122,9 +122,9 @@ public:
 	void retire(T* ptr, int tid){
 		if(ptr==NULL){return;}
 		std::list<T*>* myTrash = &(retired[tid].ui);
-		for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
-			assert(*it !=ptr && "double retire error");
-		}
+		// for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
+		// 	assert(*it !=ptr && "double retire error");
+		// }
 		myTrash->push_back(ptr);	
 		if(collect && cntrs[tid]==freq){
 			cntrs[tid]=0;

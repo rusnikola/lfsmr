@@ -31,16 +31,16 @@ limitations under the License.
 
 template<class T> class BaseTracker{
 public:
-	padded<long>* retired_cnt;
+	padded<uint64_t>* retired_cnt;
 
 	BaseTracker(int task_num){
-		retired_cnt = new padded<long>[task_num];
+		retired_cnt = new padded<uint64_t>[task_num];
 		for(int i = 0 ; i<task_num; i++){
 			retired_cnt[i].ui = 0;
 		}
 	}
 
-	long get_retired_cnt(int tid){
+	uint64_t get_retired_cnt(int tid){
 		return retired_cnt[tid].ui;
 	}
 

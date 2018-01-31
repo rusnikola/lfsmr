@@ -154,6 +154,9 @@ void Recorder::reportThreadInfo(std::string field, long value, int tid){
 	//localFields[tid].at(field)=itoa(value);
 	localFields[tid].at(field)=std::to_string(value);
 }
+void Recorder::reportThreadInfo(std::string field, uint64_t value, int tid){
+	localFields[tid].at(field)=std::to_string(value);
+}
 void Recorder::reportThreadInfo(std::string field, std::string value, int tid){
 	localFields[tid].at(field)=value;
 }
