@@ -89,16 +89,16 @@ public:
 	void start_op(int tid){
 		if (type == type_RCU){
 			uint64_t e = epoch.load(std::memory_order_acquire);
-			reservations[tid].ui.store(e,std::memory_order_release);
+			reservations[tid].ui.store(e,std::memory_order_seq_cst);
 		}
 		
 	}
 	void end_op(int tid){
 		if (type == type_RCU){
-			reservations[tid].ui.store(UINT64_MAX,std::memory_order_release);
+			reservations[tid].ui.store(UINT64_MAX,std::memory_order_seq_cst);
 		} else { //if type == TYPE_QSBR
 			uint64_t e = epoch.load(std::memory_order_acquire);
-			reservations[tid].ui.store(e,std::memory_order_release);
+			reservations[tid].ui.store(e,std::memory_order_seq_cst);
 		}
 	}
 	void reserve(int tid){
@@ -127,7 +127,7 @@ public:
 			
 		uint64_t e = epoch.load(std::memory_order_acquire);
 		RCUInfo info = RCUInfo(obj,e);
-		myTrash->push_back(info);	
+		myTrash->push_back(info);
 		if(collect && retire_counters[tid]%freq==0){
 			empty(tid);
 		}

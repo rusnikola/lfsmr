@@ -102,10 +102,10 @@ public:
 	}
 	void start_op(int tid){
 		uint64_t e = epoch.load(std::memory_order_acquire);
-		reservations[tid].ui.store(e,std::memory_order_release);
+		reservations[tid].ui.store(e,std::memory_order_seq_cst);
 	}
 	void end_op(int tid){
-		reservations[tid].ui.store(UINT64_MAX,std::memory_order_release);
+		reservations[tid].ui.store(UINT64_MAX,std::memory_order_seq_cst);
 		
 	}
 	void reserve(int tid){

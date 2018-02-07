@@ -111,7 +111,8 @@ public:
 			if (curr_epoch == prev_epoch){
 				return ptr;
 			} else {
-				reservations[tid].ui[index].store(curr_epoch, std::memory_order_release);
+				// reservations[tid].ui[index].store(curr_epoch, std::memory_order_release);
+				reservations[tid].ui[index].store(curr_epoch, std::memory_order_seq_cst);
 				prev_epoch = curr_epoch;
 			}
 		}
@@ -124,7 +125,7 @@ public:
 			if (curr_epoch == prev_epoch){
 				return;
 			} else {
-				reservations[tid].ui[index].store(curr_epoch, std::memory_order_release);
+				reservations[tid].ui[index].store(curr_epoch, std::memory_order_seq_cst);
 				prev_epoch = curr_epoch;
 			}
 		}
@@ -134,7 +135,7 @@ public:
 	void clear(int tid){
 		//reservations[tid].ui.store(UINT64_MAX,std::memory_order_release);
 		for (int i = 0; i < he_num; i++){
-			reservations[tid].ui[i].store(0, std::memory_order_release);
+			reservations[tid].ui[i].store(0, std::memory_order_seq_cst);
 		}
 	}
 

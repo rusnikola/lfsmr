@@ -113,7 +113,8 @@ public:
 			if (curr_epoch == prev_epoch){
 				return ptr;
 			} else {
-				upper_reservs[tid].ui.store(curr_epoch, std::memory_order_release);
+				// upper_reservs[tid].ui.store(curr_epoch, std::memory_order_release);
+				upper_reservs[tid].ui.store(curr_epoch, std::memory_order_seq_cst);
 				prev_epoch = curr_epoch;
 			}
 		}
@@ -121,8 +122,10 @@ public:
 
 	void start_op(int tid){
 		uint64_t e = epoch.load(std::memory_order_acquire);
-		lower_reservs[tid].ui.store(e,std::memory_order_release);
-		upper_reservs[tid].ui.store(e,std::memory_order_release);
+		lower_reservs[tid].ui.store(e,std::memory_order_seq_cst);
+		upper_reservs[tid].ui.store(e,std::memory_order_seq_cst);
+		// lower_reservs[tid].ui.store(e,std::memory_order_release);
+		// upper_reservs[tid].ui.store(e,std::memory_order_release);
 	}
 	void end_op(int tid){
 		upper_reservs[tid].ui.store(UINT64_MAX,std::memory_order_release);

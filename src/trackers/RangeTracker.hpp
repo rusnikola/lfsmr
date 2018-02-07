@@ -148,14 +148,17 @@ public:
 
 	void reserve(int tid){
 		uint64_t e = epoch.load(std::memory_order_acquire);
-		lower_reservs[tid].ui.store(e,std::memory_order_release);
-		upper_reservs[tid].ui.store(e,std::memory_order_release);
+		// lower_reservs[tid].ui.store(e,std::memory_order_release);
+		// upper_reservs[tid].ui.store(e,std::memory_order_release);
+		upper_reservs[tid].ui.store(e,std::memory_order_seq_cst);
+		lower_reservs[tid].ui.store(e,std::memory_order_seq_cst);
 		setLocalTid(tid);
 	}
 	void update_reserve(uint64_t e){ //called by biptr.
 		uint64_t curr_upper = upper_reservs[local_tid].ui.load(std::memory_order_acquire);
 		if (e > curr_upper){
-			upper_reservs[local_tid].ui.store(e, std::memory_order_release);
+			// upper_reservs[local_tid].ui.store(e, std::memory_order_release);
+			upper_reservs[local_tid].ui.store(e, std::memory_order_seq_cst);
 		} else {
 			return;
 		}
@@ -165,8 +168,8 @@ public:
 		return (upper_reservs[local_tid].ui.load(std::memory_order_acquire) >= birth_before);
 	}
 	void clear(int tid){
-		upper_reservs[tid].ui.store(UINT64_MAX,std::memory_order_release);
-		lower_reservs[tid].ui.store(UINT64_MAX,std::memory_order_release);
+		upper_reservs[tid].ui.store(UINT64_MAX,std::memory_order_seq_cst);
+		lower_reservs[tid].ui.store(UINT64_MAX,std::memory_order_seq_cst);
 	}
 
 	inline void incrementEpoch(){
