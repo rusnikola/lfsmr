@@ -108,7 +108,7 @@ static inline type_t lfbsmr##w##_deref(struct lfbsmr##w * hdr, size_t vec,	\
 	access = __lfepoch_load(&hdr->vector[vec].access,						\
 					memory_order_acquire);									\
 	while (1) {																\
-		value = __atomic_load_n(ptr, __ATOMIC_SEQ_CST);						\
+		value = __atomic_load_n(ptr, __ATOMIC_ACQUIRE);						\
 		global = __lfepoch_load(&hdr->global, memory_order_acquire);		\
 		if (access == global)												\
 			break;															\

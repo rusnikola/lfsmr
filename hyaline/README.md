@@ -1,15 +1,7 @@
-# Hyaline: Fast and Transparent Lock-Free Memory Reclamation
+# Hyaline Reclamation
 
-* Publications
-
-	**Brief Announcement: Hyaline: Fast and Transparent Lock-Free Memory
-	Reclamation.** Ruslan Nikolaev and Binoy Ravindran. In Proceedings
-	of the 38th ACM Symposium on Principles of Distributed
-	Computing (PODC'19). Toronto, ON, Canada.
-
-	[Paper](https://rusnikola.github.io/files/hyaline-podc19.pdf)
-
-	[Full (arXiv) paper](https://arxiv.org/pdf/1905.07903.pdf)
+The is the reclamation implementation itself. For complete instructions,
+see ../README.md in the parent directory.
 
 * Source code license
 
