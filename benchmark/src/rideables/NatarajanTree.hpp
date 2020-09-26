@@ -157,7 +157,8 @@ public:
 		r->left = s;
 		s->right = Node::alloc(infK,defltV,nullptr,nullptr,1,memory_tracker,0);
 		s->left = Node::alloc(infK,defltV,nullptr,nullptr,0,memory_tracker,0);
-		records = new padded<SeekRecord>[gtc->task_num]{};
+		records = new padded<SeekRecord>[gtc->task_num+gtc->task_stall]{};
+		this->setBaseMT(memory_tracker);
 	};
 	~NatarajanTree(){};
 

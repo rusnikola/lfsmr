@@ -28,27 +28,33 @@ limitations under the License.
 #include "ConcurrentPrimitives.hpp"
 #include "RAllocator.hpp"
 
+extern int count_retired;
 
 template<class T> class BaseTracker{
+private:
+	int task_num;
 public:
-	padded<uint64_t>* retired_cnt;
+	paddedAtomic<unsigned long> *retired;
 
-	BaseTracker(int task_num){
-		retired_cnt = new padded<uint64_t>[task_num];
-		for(int i = 0 ; i<task_num; i++){
-			retired_cnt[i].ui = 0;
-		}
+	BaseTracker(int task_num):task_num(task_num){
+		retired = new paddedAtomic<unsigned long>;
+		retired->ui.store(0, std::memory_order_seq_cst);
 	}
 
-	uint64_t get_retired_cnt(int tid){
-		return retired_cnt[tid].ui;
+	virtual int64_t get_retired_cnt(int tid){
+		// An average per-task
+		return count_retired ?
+			(retired->ui.load(std::memory_order_relaxed) / task_num)
+				: 0;
 	}
 
 	void inc_retired(int tid){
-		retired_cnt[tid].ui++;
+		if (count_retired)
+			retired->ui.fetch_add(1, std::memory_order_relaxed);
 	}
 	void dec_retired(int tid){
-		retired_cnt[tid].ui--;
+		if (count_retired)
+			retired->ui.fetch_sub(1, std::memory_order_relaxed);
 	}
 
 	virtual void* alloc(int tid){
@@ -74,13 +80,15 @@ public:
 	
 	virtual void end_op(int tid){}
 
+	virtual void last_end_op(int tid){}
+
 	virtual T* read(std::atomic<T*>& obj, int idx, int tid){
 		return obj.load(std::memory_order_acquire);
 	}
 	
 	virtual void transfer(int src_idx, int dst_idx, int tid){}
 
-	virtual void reserve(T* obj, int idx, int tid){}
+	virtual void reserve_slot(T* obj, int idx, int tid){}
 
 	virtual void release(int idx, int tid){}
 

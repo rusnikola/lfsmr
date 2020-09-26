@@ -66,7 +66,7 @@ private:
 public:
 	~RangeTracker(){};
 	RangeTracker(GlobalTestConfig* gtc, int epochFreq, int emptyFreq, bool collect): 
-	 task_num(gtc->task_num),freq(emptyFreq),epochFreq(epochFreq),collect(collect){
+	 task_num(gtc->task_num+gtc->task_stall),freq(emptyFreq),epochFreq(epochFreq),collect(collect){
 		retired = new padded<std::list<RangeTracker<T>::IntervalInfo>>[task_num];
 		retired_cnt = new padded<uint64_t>[task_num];
 

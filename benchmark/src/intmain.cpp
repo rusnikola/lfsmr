@@ -26,9 +26,11 @@ limitations under the License.
 #include "CustomTests.hpp"
 #include "rideables/SGLUnorderedMap.hpp"
 #include "rideables/SortedUnorderedMap.hpp"
+#include "rideables/SortedUnorderedMapStall.hpp"
 #include "rideables/BonsaiTree.hpp"
 #include "rideables/NatarajanTree.hpp"
 #include "rideables/LinkList.hpp"
+#include "rideables/LinkListStall.hpp"
 
 #if (__x86_64__ || __ppc64__)
 #include "rideables/SortedUnorderedMapRange.hpp"
@@ -62,6 +64,10 @@ int main(int argc, char *argv[])
 	gtc->addRideableOption(new BonsaiTreeRangeFactory<int,int>(), "BonsaiTreeRange");
 	gtc->addRideableOption(new NatarajanTreeRangeTrackerFactory<int,int>(), "NatarajanTreeRangeTracker");
 #endif
+
+	gtc->addRideableOption(new SortedUnorderedMapStallFactory<int,int>(), "SortedUnorderedMapStall");
+	gtc->addRideableOption(new LinkListStallFactory<int,int>(), "LinkListStall");
+
 	//gtc->addRideableOption(new SortedUnorderedMapHazardFactory<int,int>(), "SortedUnorderedMapHazard");
 	// gtc->addRideableOption(new SortedUnorderedMapRCUFactory<int,int>(), "SortedUnorderedMapRCU");
 	//gtc->addRideableOption(new SortedUnorderedMapHEFactory<int,int>(), "SortedUnorderedMapHE");
@@ -102,8 +108,8 @@ int main(int argc, char *argv[])
 	gtc->parseCommandLine(argc,argv);
 
 	if(gtc->verbose){
-		fprintf(stdout, "Testing:  %d threads for %lu seconds on %s with %s\n",
-		  gtc->task_num,gtc->interval,gtc->getTestName().c_str(),gtc->getRideableName().c_str());
+		fprintf(stdout, "Testing:  %d threads (%d stalled) for %lu seconds on %s with %s\n",
+		  gtc->task_num,gtc->task_stall,gtc->interval,gtc->getTestName().c_str(),gtc->getRideableName().c_str());
 	}
 
 	// register fancy seg fault handler to get some

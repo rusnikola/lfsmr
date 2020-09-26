@@ -86,6 +86,7 @@ BonsaiTree<K, V>::BonsaiTree(GlobalTestConfig* gtc): RetiredMonitorable(gtc){
 	//initialize with an empty head state.
 	local_tid = 0;
 	curr_state.store(mkState());
+	this->setBaseMT(memory_tracker);
 }
 
 template<class K, class V>
@@ -232,7 +233,7 @@ optional<V> BonsaiTree<K, V>::update(Operation op, K key, V val, int tid){
 		
 		std::list<Node*> retire_list_prev = new_state->state->retire_list_prev;
 		if (curr_state.compare_exchange_strong(old_state, new_state, 
-			memory_order::memory_order_acq_rel, memory_order::memory_order_acquire)){
+			std::memory_order::memory_order_acq_rel, std::memory_order::memory_order_acquire)){
 			retireState(old_state, retire_list_prev);
 			//cout<<"retire state.";
 			break;

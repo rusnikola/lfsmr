@@ -25,9 +25,12 @@ limitations under the License.
 #include "CustomTests.hpp"
 #include "rideables/SGLUnorderedMap.hpp"
 #include "rideables/SortedUnorderedMap.hpp"
+#include "rideables/SortedUnorderedMapStall.hpp"
 #include "rideables/BonsaiTree.hpp"
 #include "rideables/NatarajanTree.hpp"
 #include "rideables/LinkList.hpp"
+#include "rideables/LinkListStall.hpp"
+
 
 #if (__x86_64__ || __ppc64__)
 #include "rideables/SortedUnorderedMapRange.hpp"
@@ -60,7 +63,10 @@ int main(int argc, char *argv[])
 	gtc->addRideableOption(new BonsaiTreeRangeFactory<std::string,std::string>(), "BonsaiTreeRange");
 	gtc->addRideableOption(new NatarajanTreeRangeTrackerFactory<std::string,std::string>(), "NatarajanTreeRangeTracker");
 #endif
-	
+
+	gtc->addRideableOption(new SortedUnorderedMapStallFactory<std::string,std::string>(), "SortedUnorderedMapStall");
+	gtc->addRideableOption(new LinkListStallFactory<std::string,std::string>(), "LinkListStall");
+
 	//gtc->addRideableOption(new SortedUnorderedMapHazardFactory<std::string,std::string>(), "SortedUnorderedMapHazard");
 	// gtc->addRideableOption(new SortedUnorderedMapRCUFactory<std::string,std::string>(), "SortedUnorderedMapRCU");
 	//gtc->addRideableOption(new SortedUnorderedMapHEFactory<std::string,std::string>(), "SortedUnorderedMapHE");
@@ -104,8 +110,8 @@ int main(int argc, char *argv[])
 	gtc->parseCommandLine(argc,argv);
 
 	if(gtc->verbose){
-		fprintf(stdout, "Testing:  %d threads for %lu seconds on %s with %s\n",
-		  gtc->task_num,gtc->interval,gtc->getTestName().c_str(),gtc->getRideableName().c_str());
+		fprintf(stdout, "Testing:  %d threads (%d stalled) for %lu seconds on %s with %s\n",
+		  gtc->task_num,gtc->task_stall,gtc->interval,gtc->getTestName().c_str(),gtc->getRideableName().c_str());
 	}
 
 	// register fancy seg fault handler to get some

@@ -35,6 +35,8 @@ limitations under the License.
 #include "BaseTracker.hpp"
 
 
+#define MAX_HP		16
+
 template<class T>
 class HazardTracker: public BaseTracker<T>{
 private:
@@ -45,28 +47,53 @@ private:
 
 	RAllocator* mem;
 
-	paddedAtomic<T*>* slots;
-	padded<int>* cntrs;
-	padded<std::list<T*>>* retired; // TODO: use different structure to prevent malloc locking....
+public:
+	struct HazardInfo {
+		struct HazardInfo* next;
+	};
 
-	void empty(int tid){
-		std::list<T*>* myTrash = &(retired[tid].ui);
-		for (typename std::list<T*>::iterator iterator = myTrash->begin(), end = myTrash->end(); iterator != end; ) {
+	struct HazardSlot {
+		std::atomic<T*> entry[MAX_HP];
+		alignas(128) char pad[0];
+	};
+
+private:
+	HazardSlot* slots;
+	HazardSlot* local_slots;
+	padded<HazardInfo*>* retired;
+	padded<int>* cntrs;
+
+	void empty(int tid) {
+		HazardSlot* local = local_slots + tid * task_num;
+		HazardInfo** field = &(retired[tid].ui);
+		HazardInfo* info = *field;
+		if (info == nullptr) return;
+		for (int i = 0; i < task_num; i++) {
+			for (int j = 0; j < slotsPerThread; j++) {
+				local[i].entry[j].store(slots[i].entry[j], std::memory_order_relaxed);
+			}
+		}
+		do {
+			HazardInfo* curr = info;
+			info = curr->next;
 			bool danger = false;
-			auto ptr = *iterator;
-			for (int i = 0; i<task_num*slotsPerThread; i++){
-				if(ptr == slots[i].ui){
-					danger = true;
-					break;
+			auto ptr = (T*)curr - 1;
+			for (int i = 0; i < task_num; i++){
+				for (int j = 0; j < slotsPerThread; j++){ 
+					if (ptr == local[i].entry[j]){
+						danger = true;
+						break;
+					}
 				}
 			}
-			if(!danger){
+			if (!danger) {
+				*field = info;
 				this->reclaim(ptr);
 				this->dec_retired(tid);
-				iterator = myTrash->erase(iterator);
+				continue;
 			}
-			else{++iterator;}
-		}
+			field = &curr->next;
+		} while (info != nullptr);
 		return;
 	}
 
@@ -76,15 +103,18 @@ public:
 		this->task_num = task_num;
 		this->slotsPerThread = slotsPerThread;
 		this->freq = emptyFreq;
-		slots = new paddedAtomic<T*>[task_num*slotsPerThread];
-		for (int i = 0; i<task_num*slotsPerThread; i++){
-			slots[i]=NULL;
+		slots = (HazardSlot*) memalign(alignof(HazardSlot), sizeof(HazardSlot) * task_num);
+		local_slots = (HazardSlot*) memalign(alignof(HazardSlot), sizeof(HazardSlot) * task_num * task_num);
+		for (int i = 0; i < task_num; i++) {
+			for (int j = 0; j < slotsPerThread; j++) {
+				slots[i].entry[j]=NULL;
+			}
 		}
-		retired = new padded<std::list<T*>>[task_num];
+		retired = new padded<HazardInfo*>[task_num];
 		cntrs = new padded<int>[task_num];
 		for (int i = 0; i<task_num; i++){
 			cntrs[i]=0;
-			retired[i].ui = std::list<T*>();
+			retired[i].ui = nullptr;
 		}
 		this->collect = collect;
 	}
@@ -97,36 +127,39 @@ public:
 		while(true){
 			ret = obj.load(std::memory_order_acquire);
 			realptr = (T*)((size_t)ret & 0xfffffffffffffffc);
-			reserve(realptr, idx, tid);
+			reserve_slot(realptr, idx, tid);
 			if(ret == obj.load(std::memory_order_acquire)){
 				return ret;
 			}
 		}
 	}
 
-	void reserve(T* ptr, int slot, int tid){
-		slots[tid*slotsPerThread+slot] = ptr;
+	void reserve_slot(T* ptr, int slot, int tid){
+		slots[tid].entry[slot] = ptr;
 	}
 	void clearSlot(int slot, int tid){
-		slots[tid*slotsPerThread+slot] = NULL;
+		slots[tid].entry[slot] = NULL;
 	}
 	void clearAll(int tid){
 		for(int i = 0; i<slotsPerThread; i++){
-			slots[tid*slotsPerThread+i] = NULL;
+			slots[tid].entry[i] = NULL;
 		}
 	}
 	void clear_all(int tid){
 		clearAll(tid);
 	}
 
+	void* alloc(int tid){
+		return (void*)malloc(sizeof(T)+sizeof(HazardInfo));
+	}
+
 	void retire(T* ptr, int tid){
-		if(ptr==NULL){return;}
-		std::list<T*>* myTrash = &(retired[tid].ui);
-		// for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
-		// 	assert(*it !=ptr && "double retire error");
-		// }
-		myTrash->push_back(ptr);	
-		if(collect && cntrs[tid]==freq){
+		if (ptr==NULL){return;}
+		HazardInfo** field = &(retired[tid].ui);
+		HazardInfo* info = (HazardInfo*) (ptr + 1);
+		info->next = *field;
+		*field = info;
+		if (collect && cntrs[tid]==freq){
 			cntrs[tid]=0;
 			empty(tid);
 		}

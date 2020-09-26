@@ -66,7 +66,7 @@ void GlobalTestConfig::parseCommandLine(int argc, char** argv){
 
 
 	// Read command line
-	while ((c = getopt (argc, argv, "d:w:o:i:t:m:a:r:vhz")) != -1){
+	while ((c = getopt (argc, argv, "d:w:o:i:t:s:m:a:r:vchz")) != -1){
 		switch (c) {
 			case 'i':
 				this->interval = atoi(optarg);
@@ -74,11 +74,17 @@ void GlobalTestConfig::parseCommandLine(int argc, char** argv){
 			case 'v':
 			 	this->verbose = 1;
 			 	break;
+			case 'c':
+				this->count_retired = 1;
+				break;
 			case 'w':
 				this->warmup = atoi(optarg);
 			 	break;
 			case 't':
 				this->task_num = atoi(optarg);
+				break;
+			case 's':
+				this->task_stall = atoi(optarg);
 				break;
 			case 'm':
 				this->testType = atoi(optarg);
@@ -142,6 +148,7 @@ void GlobalTestConfig::parseCommandLine(int argc, char** argv){
 	recorder = new Recorder(task_num);
 	recorder->reportGlobalInfo("datetime",Recorder::dateTimeString());
 	recorder->reportGlobalInfo("threads",task_num);
+	recorder->reportGlobalInfo("stalled",task_stall);
 	recorder->reportGlobalInfo("cores",num_procs);
 	recorder->reportGlobalInfo("rideable",getRideableName());
 	recorder->reportGlobalInfo("affinity",affinity);

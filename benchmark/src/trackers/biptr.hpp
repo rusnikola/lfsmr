@@ -44,7 +44,9 @@ public:
 	FatPtr(){}
 	//inline bool WideCAS(fat_pointer_rec<T> *addr, fat_pointer_rec<T> &old_value, fat_pointer_rec<T> &new_value) {
 
-#if (__x86_64__ || __ppc64__)
+// XXX: disabled for now since it is only for TagIBR-WCAS (not used
+// in the evaluation) and causes compilation errors
+#if 0 //(__x86_64__ || __ppc64__)
 	inline bool WideCAS(fat_pointer_rec<T> &old_value, 
 		fat_pointer_rec<T> &new_value, std::memory_order morder) {
 		bool ret;
@@ -53,13 +55,14 @@ public:
 		"sete %0;\n"
 		:"=m"(ret),"+m" (*(volatile fat_pointer_rec<T> *) (&fat_p))
 		:"a" (old_value.ptr), "d" (old_value.tag), "b" (new_value.ptr), "c" (new_value.tag));
-		std::atomic_thread_fence(morder);
+		atomic_thread_fence(morder);
 		return ret;
 	}
 #else
 	inline bool WideCAS(fat_pointer_rec<T> &old_value, 
 		fat_pointer_rec<T> &new_value, std::memory_order morder) {
 		errexit("WCAS not supported with -m32.");
+		return false;
 	}
 #endif
 

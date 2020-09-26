@@ -66,7 +66,7 @@ ODIR:=./obj
 LDIRS:=./ext/parharness
 # libraries to link against (are expected to be in the above directories,
 # or they are system default)
-LIBS :=-l:libjemalloc.so.2 -lparharness -lpthread -lhwloc -lm -lrt
+LIBS :=-ljemalloc -lparharness -lpthread -lhwloc -lm -lrt
 # directories that should be built first using recursive make.
 # You should avoid this in general, but it's useful for building
 # external libraries which we depend on
@@ -78,9 +78,9 @@ SRCDIRS :=./src
 # output directory for binary executables
 BINDIR :=./bin
 # C compiler
-CC:=gcc
+CC:=/opt/llvm/bin/clang
 # C++ compiler
-CXX:=g++
+CXX:=/opt/llvm/bin/clang++
 # linker
 LD:= $(CXX)
 
@@ -125,11 +125,11 @@ IGNORES:=
 # Default warning flags, only used in CFLAGS,
 # and CXXFLAGS
 WARNING_FLAGS:=-ftrapv -Wreturn-type -W -Wall \
--Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter
+-Wno-unused-variable -Wno-unused-parameter -Wno-invalid-offsetof -Wno-overloaded-virtual
 
 # Default build flags.  
 CFLAGS:=-pthread -g -gdwarf-2 -fpic $(WARNING_FLAGS)
-CXXFLAGS:= -pthread -std=c++11 -g -fpic $(WARNING_FLAGS) -std=c++1y
+CXXFLAGS:= -pthread -std=gnu++11 -mcx16 -g -fpic $(WARNING_FLAGS) -std=c++1y
 
 # linker flags
 LDFLAGS := $(WARNING_FLAGS)

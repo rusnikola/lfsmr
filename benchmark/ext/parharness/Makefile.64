@@ -3,7 +3,7 @@ CC=g++
 
 # -DLEVEL1_DCACHE_LINESIZE detects the cache line size and passes it in as a compiler flag
 
-CFLAGS=-I$(IDIR) -I ./include -Wno-write-strings -fpermissive -pthread -std=c++0x -DLEVEL1_DCACHE_LINESIZE=`getconf LEVEL1_DCACHE_LINESIZE`
+CFLAGS=-I$(IDIR) -I ./include -Wno-write-strings -fpermissive -pthread -std=c++0x -DLEVEL1_DCACHE_LINESIZE=128
 
 # Additional options for different builds:
 

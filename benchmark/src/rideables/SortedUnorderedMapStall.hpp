@@ -1,7 +1,5 @@
 /*
 
-Copyright 2017 University of Rochester
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -17,8 +15,8 @@ limitations under the License.
 */
 
 
-#ifndef SORTED_UNORDEREDMAP
-#define SORTED_UNORDEREDMAP
+#ifndef SORTED_UNORDEREDMAP_STALL
+#define SORTED_UNORDEREDMAP_STALL
 
 #include <atomic>
 #include "Harness.hpp"
@@ -39,7 +37,7 @@ limitations under the License.
 #endif
 
 template <class K, class V>
-class SortedUnorderedMap : public RUnorderedMap<K,V>, public RetiredMonitorable{
+class SortedUnorderedMapStall : public RUnorderedMap<K,V>, public RetiredMonitorable{
 	struct Node;
 
 	struct MarkPtr{
@@ -57,6 +55,8 @@ class SortedUnorderedMap : public RUnorderedMap<K,V>, public RetiredMonitorable{
 	};
 private:
 	std::hash<K> hash_fn;
+	int task_stall;
+	int task_num;
 	const int idxSize;
 	padded<MarkPtr>* bucket=new padded<MarkPtr>[idxSize]{};
 	bool findNode(MarkPtr* &prev, Node* &cur, Node* &nxt, K key, int tid);
@@ -78,15 +78,21 @@ private:
 	}
 
 public:
-	SortedUnorderedMap(GlobalTestConfig* gtc,int idx_size):
+	SortedUnorderedMapStall(GlobalTestConfig* gtc,int idx_size):
 		RetiredMonitorable(gtc),idxSize(idx_size){
+        task_stall = gtc->task_stall;
+        task_num = gtc->task_num;
         int epochf = gtc->getEnv("epochf").empty()? 150:stoi(gtc->getEnv("epochf"));
         int emptyf = gtc->getEnv("emptyf").empty()? 30:stoi(gtc->getEnv("emptyf"));
 		std::cout<<"emptyf:"<<emptyf<<std::endl;
 		memory_tracker = new MemoryTracker<Node>(gtc, epochf, emptyf, 3, COLLECT);
 		this->setBaseMT(memory_tracker);
+		// Stall threads
+		for (int i = 0; i < task_stall; i++) {
+			memory_tracker->start_op(task_num + i);
+		}
 	}
-	~SortedUnorderedMap(){};
+	~SortedUnorderedMapStall(){};
 
 	Node* mkNode(K k, V v, Node* n, int tid){
 		void* ptr = memory_tracker->alloc(tid);
@@ -102,15 +108,15 @@ public:
 };
 
 template <class K, class V> 
-class SortedUnorderedMapFactory : public RideableFactory{
-	SortedUnorderedMap<K,V>* build(GlobalTestConfig* gtc){
-		return new SortedUnorderedMap<K,V>(gtc,30000);
+class SortedUnorderedMapStallFactory : public RideableFactory{
+	SortedUnorderedMapStall<K,V>* build(GlobalTestConfig* gtc){
+		return new SortedUnorderedMapStall<K,V>(gtc,30000);
 	}
 };
 
 //-------Definition----------
 template <class K, class V> 
-optional<V> SortedUnorderedMap<K,V>::get(K key, int tid) {
+optional<V> SortedUnorderedMapStall<K,V>::get(K key, int tid) {
 	MarkPtr* prev=nullptr;
 	Node* cur=nullptr;
 	Node* nxt=nullptr;
@@ -128,7 +134,7 @@ optional<V> SortedUnorderedMap<K,V>::get(K key, int tid) {
 }
 
 template <class K, class V> 
-optional<V> SortedUnorderedMap<K,V>::put(K key, V val, int tid) {
+optional<V> SortedUnorderedMapStall<K,V>::put(K key, V val, int tid) {
 	Node* tmpNode = nullptr;
 	MarkPtr* prev=nullptr;
 	Node* cur=nullptr;
@@ -168,7 +174,7 @@ optional<V> SortedUnorderedMap<K,V>::put(K key, V val, int tid) {
 }
 
 template <class K, class V> 
-bool SortedUnorderedMap<K,V>::insert(K key, V val, int tid){
+bool SortedUnorderedMapStall<K,V>::insert(K key, V val, int tid){
 	Node* tmpNode = nullptr;
 	MarkPtr* prev=nullptr;
 	Node* cur=nullptr;
@@ -199,7 +205,7 @@ bool SortedUnorderedMap<K,V>::insert(K key, V val, int tid){
 }
 
 template <class K, class V> 
-optional<V> SortedUnorderedMap<K,V>::remove(K key, int tid) {
+optional<V> SortedUnorderedMapStall<K,V>::remove(K key, int tid) {
 	MarkPtr* prev=nullptr;
 	Node* cur=nullptr;
 	Node* nxt=nullptr;
@@ -230,7 +236,7 @@ optional<V> SortedUnorderedMap<K,V>::remove(K key, int tid) {
 }
 
 template <class K, class V> 
-optional<V> SortedUnorderedMap<K,V>::replace(K key, V val, int tid) {
+optional<V> SortedUnorderedMapStall<K,V>::replace(K key, V val, int tid) {
 	Node* tmpNode = nullptr;
 	MarkPtr* prev=nullptr;
 	Node* cur=nullptr;
@@ -269,7 +275,7 @@ optional<V> SortedUnorderedMap<K,V>::replace(K key, V val, int tid) {
 }
 
 template <class K, class V> 
-bool SortedUnorderedMap<K,V>::findNode(MarkPtr* &prev, Node* &cur, Node* &nxt, K key, int tid){
+bool SortedUnorderedMapStall<K,V>::findNode(MarkPtr* &prev, Node* &cur, Node* &nxt, K key, int tid){
 	while(true){
 		size_t idx=hash_fn(key)%idxSize;
 		bool cmark=false;

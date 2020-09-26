@@ -30,6 +30,8 @@ limitations under the License.
 
 #include "BaseTracker.hpp"
 
+#define MAX_HE		16
+
 template<class T> class HETracker: public BaseTracker<T>{
 private:
 	int task_num;
@@ -40,38 +42,42 @@ private:
 
 	
 public:
-	class HEInfo{
-	public:
-		T* obj;
+	struct HEInfo {
+		struct HEInfo* next;
 		uint64_t birth_epoch;
 		uint64_t retire_epoch;
-		HEInfo(T* obj, uint64_t b_epoch, uint64_t r_epoch):
-			obj(obj), birth_epoch(b_epoch), retire_epoch(r_epoch){}
 	};
-	
+
+	struct HESlot {
+		std::atomic<uint64_t> entry[MAX_HE];
+		alignas(128) char pad[0];
+	};
+
 private:
-	padded<std::atomic<uint64_t>*>* reservations;
+	HESlot* reservations;
+	HESlot* local_reservations;
 	padded<uint64_t>* retire_counters;
 	padded<uint64_t>* alloc_counters;
-	padded<std::list<HEInfo>>* retired; 
+	padded<HEInfo*>* retired;
 
-	std::atomic<uint64_t> epoch;
+	paddedAtomic<uint64_t> epoch;
 
 public:
 	~HETracker(){};
 	HETracker(int task_num, int he_num, int epochFreq, int emptyFreq, bool collect): 
 	 BaseTracker<T>(task_num),task_num(task_num),he_num(he_num),epochFreq(epochFreq),freq(emptyFreq),collect(collect){
-		retired = new padded<std::list<HETracker<T>::HEInfo>>[task_num];
-		reservations = new padded<std::atomic<uint64_t>*>[task_num];
+		retired = new padded<HEInfo*>[task_num];
+		reservations = (HESlot *) memalign(alignof(HESlot), sizeof(HESlot) * task_num);
+		local_reservations = (HESlot*) memalign(alignof(HESlot), sizeof(HESlot) * task_num * task_num);
 		for (int i = 0; i<task_num; i++){
-			reservations[i].ui = new std::atomic<uint64_t>[he_num];
+			retired[i].ui = nullptr;
 			for (int j = 0; j<he_num; j++){
-				reservations[i].ui[j].store(0, std::memory_order_release);
+				reservations[i].entry[j].store(0, std::memory_order_release);
 			}
 		}
 		retire_counters = new padded<uint64_t>[task_num];
 		alloc_counters = new padded<uint64_t>[task_num];
-		epoch.store(0, std::memory_order_release);
+		epoch.ui.store(1, std::memory_order_release);
 	}
 	HETracker(int task_num, int emptyFreq) : HETracker(task_num,emptyFreq,true){}
 
@@ -79,23 +85,18 @@ public:
 		return reserve(tid);
 	}
 	uint64_t getEpoch(){
-		return epoch.load(std::memory_order_acquire);
+		return epoch.ui.load(std::memory_order_acquire);
 	}
 
 	void* alloc(int tid){
 		alloc_counters[tid] = alloc_counters[tid]+1;
 		if(alloc_counters[tid]%(epochFreq*task_num)==0){
-			epoch.fetch_add(1,std::memory_order_acq_rel);
+			epoch.ui.fetch_add(1,std::memory_order_acq_rel);
 		}
-		char* block = (char*) malloc(sizeof(uint64_t) + sizeof(T));
-		uint64_t* birth_epoch = (uint64_t*)(block + sizeof(T));
-		*birth_epoch = getEpoch();
+		char* block = (char*) malloc(sizeof(HEInfo) + sizeof(T));
+		HEInfo* info = (HEInfo*) (block + sizeof(T));
+		info->birth_epoch = getEpoch();
 		return (void*)block;
-	}
-
-	uint64_t read_birth(T* obj){
-		uint64_t* birth_epoch = (uint64_t*)((char*)obj + sizeof(T));
-		return *birth_epoch;
 	}
 
 	void reclaim(T* obj){
@@ -104,68 +105,62 @@ public:
 	}
 
 	T* read(std::atomic<T*>& obj, int index, int tid){
-		uint64_t prev_epoch = reservations[tid].ui[index].load(std::memory_order_acquire);
+		uint64_t prev_epoch = reservations[tid].entry[index].load(std::memory_order_acquire);
 		while(true){
 			T* ptr = obj.load(std::memory_order_acquire);
 			uint64_t curr_epoch = getEpoch();
 			if (curr_epoch == prev_epoch){
 				return ptr;
 			} else {
-				// reservations[tid].ui[index].store(curr_epoch, std::memory_order_release);
-				reservations[tid].ui[index].store(curr_epoch, std::memory_order_seq_cst);
+				// reservations[tid].entry[index].store(curr_epoch, std::memory_order_release);
+				reservations[tid].entry[index].store(curr_epoch, std::memory_order_seq_cst);
 				prev_epoch = curr_epoch;
 			}
 		}
 	}
 
 	void reserve_slot(T* obj, int index, int tid){
-		uint64_t prev_epoch = reservations[tid].ui[index].load(std::memory_order_acquire);
+		uint64_t prev_epoch = reservations[tid].entry[index].load(std::memory_order_acquire);
 		while(true){
 			uint64_t curr_epoch = getEpoch();
 			if (curr_epoch == prev_epoch){
 				return;
 			} else {
-				reservations[tid].ui[index].store(curr_epoch, std::memory_order_seq_cst);
+				reservations[tid].entry[index].store(curr_epoch, std::memory_order_seq_cst);
 				prev_epoch = curr_epoch;
 			}
 		}
 	}
 	
 
-	void clear(int tid){
-		//reservations[tid].ui.store(UINT64_MAX,std::memory_order_release);
+	void clear_all(int tid){
+		//reservations[tid].entry.store(UINT64_MAX,std::memory_order_release);
 		for (int i = 0; i < he_num; i++){
-			reservations[tid].ui[i].store(0, std::memory_order_seq_cst);
+			reservations[tid].entry[i].store(0, std::memory_order_seq_cst);
 		}
 	}
 
 	inline void incrementEpoch(){
-		epoch.fetch_add(1,std::memory_order_acq_rel);
+		epoch.ui.fetch_add(1,std::memory_order_acq_rel);
 	}
 	
 	void retire(T* obj, int tid){
-		retire(obj, read_birth(obj), tid);
-	}
-
-	void retire(T* obj, uint64_t birth_epoch, int tid){
 		if(obj==NULL){return;}
-		std::list<HEInfo>* myTrash = &(retired[tid].ui);
-		// for(auto it = myTrash->begin(); it!=myTrash->end(); it++){
-		// 	assert(it->obj!=obj && "double retire error");
-		// }
-			
-		uint64_t retire_epoch = epoch.load(std::memory_order_acquire);
-		myTrash->push_back(HEInfo(obj, birth_epoch, retire_epoch));
+		HEInfo** field = &(retired[tid].ui);
+		HEInfo* info = (HEInfo*) (obj + 1);
+		info->retire_epoch = epoch.ui.load(std::memory_order_acquire);
+		info->next = *field;
+		*field = info;
 		if(collect && retire_counters[tid]%freq==0){
 			empty(tid);
 		}
 		retire_counters[tid]=retire_counters[tid]+1;
 	}
-	
-	bool can_delete(uint64_t birth_epoch, uint64_t retire_epoch){
+
+	bool can_delete(HESlot* local, uint64_t birth_epoch, uint64_t retire_epoch) {
 		for (int i = 0; i < task_num; i++){
 			for (int j = 0; j < he_num; j++){
-				const uint64_t epo = reservations[i].ui[j].load(std::memory_order_acquire);
+				const uint64_t epo = local[i].entry[j].load(std::memory_order_acquire);
 				if (epo < birth_epoch || epo > retire_epoch || epo == 0){
 					continue;
 				} else {
@@ -176,18 +171,28 @@ public:
 		return true;
 	}
 
-	void empty(int tid){
+	void empty(int tid) {
 		// erase safe objects
-		std::list<HEInfo>* myTrash = &(retired[tid].ui);
-		for (auto iterator = myTrash->begin(), end = myTrash->end(); iterator != end; ) {
-			HEInfo res = *iterator;
-			if(can_delete(res.birth_epoch, res.retire_epoch)){
-				reclaim(res.obj);
-				iterator = myTrash->erase(iterator);
-				this->dec_retired(tid);
+		HESlot* local = local_reservations + tid * task_num;
+		HEInfo** field = &(retired[tid].ui);
+		HEInfo* info = *field;
+		if (info == nullptr) return;
+		for (int i = 0; i < task_num; i++) {
+			for (int j = 0; j < he_num; j++) {
+				local[i].entry[j].store(reservations[i].entry[j].load(std::memory_order_acquire), std::memory_order_relaxed);
 			}
-			else{++iterator;}
 		}
+		do {
+			HEInfo* curr = info;
+			info = curr->next;
+			if (can_delete(local, curr->birth_epoch, curr->retire_epoch)) {
+				*field = info;
+				reclaim((T*)curr - 1);
+				this->dec_retired(tid);
+				continue;
+			}
+			field = &curr->next;
+		} while (info != nullptr);
 	}
 		
 	bool collecting(){return collect;}

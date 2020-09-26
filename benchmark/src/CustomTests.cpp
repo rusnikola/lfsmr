@@ -30,6 +30,7 @@ limitations under the License.
 using namespace std;
 
 
+int count_retired = 0;
 
 void DebugTest::init(GlobalTestConfig* gtc){
 	Rideable* ptr = gtc->allocRideable();

@@ -53,6 +53,7 @@ extern char *optarg;
 // global test configuration, holds all command line arguments
 class GlobalTestConfig{
 public:
+	int task_stall = 0;  // number of stalled threads
 	int task_num = 4;  // number of threads
 	struct timeval start, finish; // timing structures
 	long unsigned int interval = 2;  // number of seconds to run test
@@ -65,6 +66,7 @@ public:
 	int testType=0;
 	int rideableType=0;
 	int verbose=0;
+	int count_retired=0;
 	int warmup = 3; // MBs of data to warm
 	bool timeOut = true; // whether to abort on infinte loop
 	std::string affinity;
@@ -76,6 +78,7 @@ public:
 	std::vector<std::string> testNames;
 	std::string outFile;
 	std::vector<Rideable*> allocatedRideables;
+	std::map<std::string,std::string> environment;
 
 	long int total_operations=0;
 
@@ -122,7 +125,6 @@ private:
 	void buildSingleAffinity();
 	
 
-	std::map<std::string,std::string> environment;
 	std::map<std::string,void*> arguments;
 	
 	void createTest();

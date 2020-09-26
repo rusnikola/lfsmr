@@ -234,7 +234,7 @@ optional<V> BonsaiTreeRange<K, V>::update(Operation op, K key, V val, int tid){
 
 		
 		std::list<Node*> retire_list_prev = new_state->state->retire_list_prev;
-		if (curr_state.CAS(old_state, new_state, memory_order::memory_order_acq_rel)){
+		if (curr_state.CAS(old_state, new_state, std::memory_order::memory_order_acq_rel)){
 			retireState(old_state, retire_list_prev);
 			break;
 		} else {
