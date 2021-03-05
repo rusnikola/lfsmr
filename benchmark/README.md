@@ -1,7 +1,8 @@
-# Interval Based Reclamation - Experimental Program
+# Experimental Program
 
-By Haosen Wen, Joseph Izraelevitz, Wentao Cai, H. Alan Beadle, Michael L. Scott
-
+The following description is based on the [original](https://github.com/roghnin/Interval-Based-Reclamation) README text from IBR
+(Interval Based Reclamation) by Haosen Wen, Joseph Izraelevitz,
+Wentao Cai, H. Alan Beadle, and Michael L. Scott.
 
 ## Layout
 
@@ -55,17 +56,16 @@ for usage informations and currently available rideables and trackers.
 
 To use parharness for repeating and customizing tests, edit and run:
 
-ext/parharness/script/testscript.py
+ext/parharness/script/testscript\_hyaline.py
 
 ### Draw plots
 
-We used R for drawing plots, and a sample plotting script locates in:
-
-data/scripts/genfigs.R
+R is used to draw plots (see data/scripts/genfigs\_XXX.R scripts).
 
 Running:
 
-$ Rscript data/scripts/genfigs.R
+cd data/scripts
+./genplots.sh
 
 Will plot out the data located in:
 
