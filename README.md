@@ -1,5 +1,13 @@
 # Hyaline Reclamation
 
+## Publications
+
+* [Paper](https://rusnikola.github.io/files/hyaline-pldi21.pdf): Snapshot-Free, Transparent, and Robust Memory Reclamation for Lock-Free Data Structures. Ruslan Nikolaev, and Binoy Ravindran. In Proceedings of the 42nd ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI'21). Virtual, Canada.
+
+* [Brief Announcement](https://rusnikola.github.io/files/hyaline-podc19.pdf): Hyaline: Fast and Transparent Lock-Free Memory Reclamation. Ruslan Nikolaev and Binoy Ravindran. In Proceedings of the 38th ACM Symposium on Principles of Distributed Computing (PODC'19). Toronto, ON, Canada.
+
+## Source Code
+
 Please see Hyaline's code in the 'hyaline' directory. We also used used an
 existent Interval-Based-Reclamation benchmark and integrated our new Hyaline
 schemes into the benchmark.
